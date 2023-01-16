@@ -1,3 +1,11 @@
+export enum Tools {
+  Pointer,
+  Eraser,
+  Pen,
+  Rectangle,
+  Ellipse,
+}
+
 export enum Command {
   Move = "M",
   RelativeMove = "m",
@@ -15,4 +23,7 @@ export enum Command {
   RelativeSmoothQuadraticCurve = "t",
   EllipticalCurve = "A",
   RelativeEllipticalCurve = "a",
+  ClosePath = "Z",
 }
+
+export const IdPrefix = "svg-";

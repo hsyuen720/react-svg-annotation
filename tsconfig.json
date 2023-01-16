@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "outDir": "dist",
     "jsx": "react-jsx",
     "target": "ESNext",
     "module": "ESNext",
@@ -8,5 +9,7 @@
     "strict": true,
     "skipLibCheck": true,
     "moduleResolution": "Node"
-  }
+  },
+  "include": ["src/**/*"],
+  "files": ["src/index.ts"]
 }

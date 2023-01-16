@@ -1,18 +1,31 @@
-import { SVGAttributes } from "react";
-import { Tools } from "../constants/tools";
-import { ValueOf } from "./utils";
+import type { SVGAttributes } from "react";
 
-export type SVGStyleOption = {
+import type { ValueOf } from "./utils";
+import type { Tools } from "../constants/svg";
+
+export type SVGStyleOption = Partial<{
   color: string;
   lineWidth: number;
   fillColor: string;
-};
+}>;
 
-export type PathObject = SVGAttributes<SVGPathElement>;
+interface PathObject extends SVGAttributes<SVGPathElement> {
+  d: string;
+}
 
-export type CircleObject = SVGAttributes<SVGCircleElement>;
+interface RectangleObject extends SVGAttributes<SVGRectElement> {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
-export type RectangleObject = SVGAttributes<SVGRectElement>;
+interface EllipseObject extends SVGAttributes<SVGEllipseElement> {
+  cx: number;
+  cy: number;
+  rx: number;
+  ry: number;
+}
 
 export type SVGObject = ValueOf<{
   [T in Tools]: {
@@ -20,11 +33,12 @@ export type SVGObject = ValueOf<{
     tool: T;
     data: T extends Tools.Pen
       ? PathObject
-      : T extends Tools.Circle
-      ? CircleObject
       : T extends Tools.Rectangle
       ? RectangleObject
+      : T extends Tools.Ellipse
+      ? EllipseObject
       : never;
   };
 }>;
+
 export type Annotation = Array<SVGObject>;

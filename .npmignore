@@ -1,0 +1,6 @@
+.DS_Store
+.husky
+.storybook
+storybook-static
+.vscode
+src

@@ -1,30 +1,54 @@
 import { type RefObject, useCallback } from "react";
-import type { AnnotationEvent, Point } from "../types/utils";
 import uniqid from "uniqid";
 
-const useAnnotationCore = <C extends HTMLElement>(ref: RefObject<C>) => {
-  const getTargetPoint = useCallback(
-    (e: AnnotationEvent<C>) => {
-      const point: Point = { x: 0, y: 0, pressure: 0 };
-      const offsetX = ref.current?.offsetLeft ?? 0;
-      const offsetY = ref.current?.offsetTop ?? 0;
-      if (e.nativeEvent instanceof MouseEvent) {
-        point.x = e.nativeEvent.clientX - offsetX;
-        point.y = e.nativeEvent.clientY - offsetY;
-        point.pressure = 0;
-      } else if (e.nativeEvent instanceof TouchEvent) {
-        const touch = e.nativeEvent.touches[0];
-        point.x = touch.clientX - offsetX;
-        point.y = touch.clientY - offsetY;
-        point.pressure = touch.force;
+import { ControlSpacing } from "../constants/setting";
+import { IdPrefix } from "../constants/svg";
+import type { AnnotationEvent, Point } from "../types/utils";
+
+const useAnnotationCore = <T extends SVGSVGElement>(ref: RefObject<T>) => {
+  const getCTMPoint = useCallback(
+    (x: number, y: number): Point => {
+      const ctm = ref.current?.getScreenCTM();
+      if (ctm) {
+        return {
+          x: (x - ctm.e) / ctm.a,
+          y: (y - ctm.f) / ctm.d,
+        };
+      } else {
+        return { x, y };
       }
-      return point;
     },
     [ref],
   );
 
-  const getElementId = useCallback(() => uniqid("svg-"), []);
+  const getCurrentPosition = useCallback(
+    (e: AnnotationEvent<T>) => {
+      let point: Point = { x: 0, y: 0 };
+      if (e.nativeEvent instanceof MouseEvent) {
+        point = getCTMPoint(e.nativeEvent.clientX, e.nativeEvent.clientY);
+      } else if (e.nativeEvent instanceof TouchEvent) {
+        const touch = e.nativeEvent.touches[0];
+        point = getCTMPoint(touch.clientX, touch.clientY);
+      }
+      return point;
+    },
+    [getCTMPoint],
+  );
 
-  return { getTargetPoint, getElementId };
+  const getShapeControl = useCallback(
+    (el: SVGElement): Point => {
+      const box = el.getBoundingClientRect();
+      const origin: Point = getCTMPoint(box.x, box.y);
+      return {
+        x: origin.x + box.width + ControlSpacing,
+        y: origin.y + box.height + ControlSpacing,
+      };
+    },
+    [getCTMPoint],
+  );
+
+  const getId = useCallback(() => uniqid(IdPrefix), []);
+
+  return { getCurrentPosition, getShapeControl, getId };
 };
 export default useAnnotationCore;

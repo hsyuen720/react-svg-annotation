@@ -1,16 +1,13 @@
 import produce from "immer";
 import { RefObject, useCallback, useMemo, useState } from "react";
-import { Command } from "../constants/svg";
-import { Tools } from "../constants/tools";
-import type { PathObject, SVGStyleOption, SVGObject } from "../types/svg";
-import type { AnnotationEvent, Point } from "../types/utils";
-import useAnnotationCore from "./useAnnotationCore";
 
-const useDrawing = <T extends HTMLElement = HTMLDivElement>(
-  ref: RefObject<T>,
-  styleOption?: SVGStyleOption,
-) => {
-  const { getTargetPoint, getElementId } = useAnnotationCore(ref);
+import useAnnotationCore from "./useAnnotationCore";
+import { Command, Tools } from "../constants/svg";
+import type { SVGObject, SVGStyleOption } from "../types/svg";
+import type { AnnotationEvent, Point } from "../types/utils";
+
+const useDrawing = <T extends SVGSVGElement>(ref: RefObject<T>, styleOption?: SVGStyleOption) => {
+  const { getCurrentPosition, getId } = useAnnotationCore(ref);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawingPoint, setDrawingPoint] = useState<Point[]>([]);
 
@@ -39,7 +36,7 @@ const useDrawing = <T extends HTMLElement = HTMLDivElement>(
   const onDrawProceed = useCallback(
     (e: AnnotationEvent<T>) => {
       if (isDrawing) {
-        const point = getTargetPoint(e);
+        const point = getCurrentPosition(e);
         setDrawingPoint(
           produce((draft) => {
             draft.push(point);
@@ -47,20 +44,18 @@ const useDrawing = <T extends HTMLElement = HTMLDivElement>(
         );
       }
     },
-    [isDrawing, getTargetPoint],
+    [isDrawing, getCurrentPosition],
   );
 
   const onDrawEnd = useCallback(
     (callback: (value: SVGObject) => void) => {
       if (isDrawing) {
-        if (currentPath) {
-          callback({ ...currentPath, id: getElementId() });
-        }
+        if (currentPath) callback({ ...currentPath, id: getId() });
         setDrawingPoint([]);
         setIsDrawing(false);
       }
     },
-    [isDrawing, currentPath, getElementId],
+    [isDrawing, currentPath, getId],
   );
 
   const clearDrawing = useCallback(() => {

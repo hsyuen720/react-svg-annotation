@@ -1,106 +1,198 @@
 import produce from "immer";
-import { useCallback, useState, type RefObject } from "react";
-import { Tools } from "../constants/tools";
-import type { SVGObject, SVGStyleOption } from "../types/svg";
-import { AnnotationEvent, Point } from "../types/utils";
-import useAnnotationCore from "./useAnnotationCore";
+import { type RefObject, useCallback, useState } from "react";
 
-const useShape = <T extends HTMLElement = HTMLDivElement>(
-  ref: RefObject<T>,
-  styleOption?: SVGStyleOption,
-) => {
-  const { getTargetPoint, getElementId } = useAnnotationCore(ref);
+import useAnnotationCore from "./useAnnotationCore";
+import { ControlId } from "../constants/setting";
+import { IdPrefix, Tools } from "../constants/svg";
+import type { SVGObject, SVGStyleOption } from "../types/svg";
+import type { ActionType, AnnotationEvent, Point, ShapeControl } from "../types/utils";
+
+const useShape = <T extends SVGSVGElement>(ref: RefObject<T>, styleOption?: SVGStyleOption) => {
+  const { getCurrentPosition, getShapeControl, getId } = useAnnotationCore(ref);
+
+  const [actionType, setActionType] = useState<ActionType | null>(null);
   const [currentShape, setCurrentShape] = useState<SVGObject | null>(null);
-  const [vectorPoint, setVectorPoint] = useState<Point | null>(null);
+  const [originalShape, setOriginalShape] = useState<SVGObject | null>(null);
+  const [shapeControl, setShapeControl] = useState<ShapeControl | null>(null);
+  const [refPoint, setRefPoint] = useState<Point | null>(null);
 
   const addShape = useCallback(
     (e: AnnotationEvent<T>, tool: Tools): SVGObject | null => {
-      const point = getTargetPoint(e);
-      const id = getElementId();
+      const point = getCurrentPosition(e);
+      const id = getId();
       const styles = {
         stroke: styleOption?.color ?? "black",
         strokeWidth: styleOption?.lineWidth ?? 5,
         fill: styleOption?.fillColor ?? "transparent",
       };
-      if (tool === Tools.Circle) {
-        return { id, tool, data: { cx: point.x, cy: point.y, r: 50, ...styles } };
-      } else if (tool === Tools.Rectangle) {
-        return { id, tool, data: { x: point.x, y: point.y, width: 50, height: 50, ...styles } };
+
+      if (tool === Tools.Rectangle) {
+        return {
+          id,
+          tool,
+          data: { ...styles, x: point.x, y: point.y, width: 50, height: 50 },
+        };
+      } else if (tool === Tools.Ellipse) {
+        return {
+          id,
+          tool,
+          data: { ...styles, cx: point.x, cy: point.y, rx: 50, ry: 50 },
+        };
       } else {
         return null;
       }
     },
-    [getTargetPoint, getElementId, styleOption],
+    [getCurrentPosition, getId, styleOption],
   );
 
-  const moveShape = useCallback(
+  const controlShape = useCallback(
     (e: AnnotationEvent<T>) => {
-      if (currentShape) {
-        const point = getTargetPoint(e);
+      if (actionType !== null && currentShape) {
+        const currentPosition = getCurrentPosition(e);
         setCurrentShape(
           produce((draft) => {
-            if (draft?.tool === Tools.Circle) {
-              draft.data.cx = point.x - (vectorPoint?.x ?? 0);
-              draft.data.cy = point.y - (vectorPoint?.y ?? 0);
-            } else if (draft?.tool === Tools.Rectangle) {
-              draft.data.x = point.x - (vectorPoint?.x ?? 0);
-              draft.data.y = point.y - (vectorPoint?.y ?? 0);
+            if (draft) {
+              if (actionType === "move") {
+                const translateX = currentPosition.x - (refPoint?.x ?? 0);
+                const translateY = currentPosition.y - (refPoint?.y ?? 0);
+
+                if (draft.tool === Tools.Ellipse) {
+                  draft.data.cx = translateX;
+                  draft.data.cy = translateY;
+                } else if (draft.tool === Tools.Rectangle) {
+                  draft.data.x = translateX;
+                  draft.data.y = translateY;
+                } else if (draft.tool === Tools.Pen) {
+                  draft.data.transform = `translate(${translateX},${translateY})`;
+                }
+              } else if (actionType === "resize" && originalShape) {
+                const offsetX = currentPosition.x - (refPoint?.x ?? 0);
+                const offsetY = currentPosition.y - (refPoint?.y ?? 0);
+                if (draft.tool === Tools.Rectangle && originalShape.tool === Tools.Rectangle) {
+                  draft.data.width = originalShape.data.width + offsetX;
+                  draft.data.height = originalShape.data.height + offsetY;
+                } else if (draft.tool === Tools.Ellipse && originalShape.tool === Tools.Ellipse) {
+                  draft.data.rx = originalShape.data.rx + offsetX;
+                  draft.data.ry = originalShape.data.ry + offsetY;
+                }
+              }
+            }
+          }),
+        );
+
+        setShapeControl(
+          produce((draft) => {
+            if (draft?.offset) {
+              draft.translate = {
+                x: currentPosition.x - draft.offset.x,
+                y: currentPosition.y - draft.offset.y,
+              };
             }
           }),
         );
       }
     },
-    [getTargetPoint, currentShape, vectorPoint],
+    [actionType, currentShape, getCurrentPosition, refPoint, originalShape],
   );
 
-  const resizeShape = useCallback(
-    (e: AnnotationEvent<T>) => {
-      if (currentShape) {
-        const point = getTargetPoint(e);
+  const getShapeOffsetPoint = useCallback(
+    (targetShape: SVGObject, current: Point): Point | null => {
+      let shapeX: number | null = null;
+      let shapeY: number | null = null;
 
-        console.log("resize", point);
+      if (targetShape.tool === Tools.Ellipse) {
+        shapeX = targetShape.data.cx;
+        shapeY = targetShape.data.cy;
+      } else if (targetShape.tool === Tools.Rectangle) {
+        shapeX = targetShape.data.x;
+        shapeY = targetShape.data.y;
+      } else if (targetShape.tool == Tools.Pen) {
+        const el = document.querySelector<SVGSVGElement>(`#${targetShape.id}`);
+        const offset = el?.transform.baseVal.consolidate();
+        shapeX = offset?.matrix.e ?? 0;
+        shapeY = offset?.matrix.f ?? 0;
+      }
+
+      if (shapeX !== null && shapeY !== null) {
+        return {
+          x: current.x - shapeX,
+          y: current.y - shapeY,
+        };
+      } else {
+        return null;
       }
     },
-    [getTargetPoint, currentShape],
+    [],
   );
 
   const focusShape = useCallback(
     (e: AnnotationEvent<T>, get: (id: string) => SVGObject | undefined) => {
-      e.stopPropagation();
-      const target = e.target as HTMLElement;
-      if (["rect", "circle"].includes(target.tagName) && target.id !== currentShape?.id) {
-        const targetShape = get(target.id);
-        if (targetShape) {
-          setCurrentShape(targetShape);
-          const targetPoint = getTargetPoint(e);
-          let shapeX: number | null = null;
-          let shapeY: number | null = null;
-          if (targetShape.tool === Tools.Circle) {
-            shapeX = Number(targetShape.data.cx);
-            shapeY = Number(targetShape.data.cy);
-          } else if (targetShape.tool === Tools.Rectangle) {
-            shapeX = Number(targetShape.data.x);
-            shapeY = Number(targetShape.data.y);
+      const el = e.target as SVGSVGElement;
+      const currentPosition = getCurrentPosition(e);
+      let targetShape: SVGObject | null = currentShape;
+      if (el.id.startsWith(IdPrefix) && el.id !== currentShape?.id) {
+        targetShape = get(el.id) ?? null;
+        setCurrentShape(targetShape);
+        setOriginalShape(targetShape);
+      }
+
+      if (actionType === null && targetShape) {
+        const newAction: ActionType | null =
+          el.id === targetShape.id ? "move" : el.id === ControlId ? "resize" : null;
+        if (newAction !== null) {
+          setRefPoint(
+            newAction === "move"
+              ? getShapeOffsetPoint(targetShape, currentPosition)
+              : currentPosition,
+          );
+        }
+        setActionType(newAction);
+        if (targetShape.tool !== Tools.Pen) {
+          const shapeEl = document.querySelector<SVGSVGElement>(`#${targetShape.id}`);
+          if (shapeEl) {
+            const shapeControl = getShapeControl(shapeEl);
+            setShapeControl(
+              produce<ShapeControl>({ point: shapeControl }, (draft) => {
+                if (draft) {
+                  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                  const transform = svg.createSVGTransform();
+                  transform.setTranslate(draft.translate?.x ?? 0, draft.translate?.y ?? 0);
+                  draft.offset = {
+                    x: currentPosition.x - transform.matrix.e,
+                    y: currentPosition.y - transform.matrix.f,
+                  };
+                }
+              }),
+            );
           }
-          if (shapeX !== null && shapeY !== null) {
-            setVectorPoint({
-              x: targetPoint.x - shapeX,
-              y: targetPoint.y - shapeY,
-              pressure: 0,
-            });
-          }
+        } else {
+          setShapeControl(null);
         }
       }
     },
-    [currentShape, getTargetPoint],
+    [currentShape, getShapeControl, actionType, getCurrentPosition, getShapeOffsetPoint],
   );
 
-  const clearShape = useCallback(() => {
-    setCurrentShape(null);
-    setVectorPoint(null);
-  }, []);
+  const clearShape = useCallback(
+    (callback?: (currentShape: SVGObject) => void) => {
+      if (callback) {
+        if (actionType !== null && currentShape) {
+          callback(currentShape);
+          setOriginalShape(currentShape);
+          setActionType(null);
+        }
+      } else {
+        setCurrentShape(null);
+        setOriginalShape(null);
+        setShapeControl(null);
+        setRefPoint(null);
+        setActionType(null);
+      }
+    },
+    [actionType, currentShape],
+  );
 
-  return { currentShape, addShape, moveShape, resizeShape, focusShape, clearShape };
+  return { currentShape, shapeControl, addShape, controlShape, focusShape, clearShape };
 };
 
 export default useShape;
