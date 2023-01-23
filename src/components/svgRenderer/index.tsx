@@ -40,6 +40,7 @@ const SvgRenderer = forwardRef<SVGSVGElement, SvgRendererProps>(
         />
       );
     }, [shapeControl]);
+
     return (
       <SVG
         {...rest}
