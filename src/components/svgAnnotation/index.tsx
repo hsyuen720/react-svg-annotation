@@ -1,9 +1,7 @@
 import { FC, useMemo } from "react";
 
 import { AnnotationContainer, Container, Toolbar, ToolbarButton } from "./styles";
-import { ImageType } from "../../constants/download";
 import { ContainerSize } from "../../constants/setting";
-import { Tools } from "../../constants/svg";
 import useSvgAnnotation from "../../hooks/useSvgAnnotation";
 import type { SVGStyleOption } from "../../types/svg";
 import SvgRenderer from "../svgRenderer";
@@ -15,7 +13,7 @@ export interface SvgAnnotationProps extends SVGStyleOption {
 }
 
 const SvgAnnotation: FC<SvgAnnotationProps> = (props) => {
-  const { svgProps, changeTool, download } = useSvgAnnotation({
+  const { svgProps } = useSvgAnnotation({
     color: props.color,
     fillColor: props.fillColor,
     lineWidth: props.lineWidth,
