@@ -1,7 +1,8 @@
 .DS_Store
+.github
 .husky
 .storybook
 storybook-static
+docs
 .vscode
 src
-docs

@@ -17,3 +17,13 @@ Basic.args = {
   width: 400,
   height: 400,
 };
+
+export const CustomBackground = Template.bind({});
+CustomBackground.args = {
+  color: "black",
+  lineWidth: 5,
+  fillColor: "transparent",
+  width: 400,
+  height: 400,
+  backgroundImage: "https://via.placeholder.com/400",
+};

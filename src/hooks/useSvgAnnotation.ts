@@ -83,7 +83,6 @@ const useSvgAnnotation = <T extends SVGSVGElement>(styleOption?: SVGStyleOption)
     (e: AnnotationEvent<T>) => {
       e.preventDefault();
       e.stopPropagation();
-
       if (tool === Tools.Pointer) {
         focusShape(e, (id) => annotation.find((value) => value.id === id));
       } else if (tool === Tools.Eraser) {
