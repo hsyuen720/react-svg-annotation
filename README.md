@@ -37,9 +37,11 @@ import { useSvgAnnotation, SvgRenderer } from "react-svg-annotation";
 
 const Example = () => {
   const { svgProps, changeTool, tool } = useSvgAnnotation({
-    color: "black",
-    fillColor: "transparent",
-    lineWidth: 5,
+    styleOption: {
+      color: "black",
+      fillColor: "transparent",
+      lineWidth: 5,
+    },
   });
 
   return (
@@ -90,7 +92,11 @@ interface SvgAnnotationProps extends SVGStyleOption {
 ### `useSvgAnnotation` hook
 
 ```tsx
-type UseSvgAnnotation<T extends SVGSVGElement> = (styleOption?: SVGStyleOption) => {
+type UseSvgAnnotationParams = {
+  styleOption?: SVGStyleOption;
+};
+
+type UseSvgAnnotation<T extends SVGSVGElement> = (options?: UseSvgAnnotationParams) => {
   svgProps: SvgRendererProps;
   tool: Tools;
   changeTool: (value: Tools) => void;

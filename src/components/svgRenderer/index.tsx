@@ -1,16 +1,19 @@
-import { type SVGAttributes, forwardRef, useCallback, useMemo } from "react";
+import { forwardRef, useCallback, useMemo } from "react";
 
 import { ControlPoint, SVG } from "./styles";
 import { ContainerSize, ControlId } from "../../constants/setting";
 import { Tools } from "../../constants/svg";
 import type { Annotation, SVGObject } from "../../types/svg";
-import { ShapeControl } from "../../types/utils";
+import type { AnnotationEvents, ShapeControl } from "../../types/utils";
 
-export interface SvgRendererProps extends SVGAttributes<SVGSVGElement> {
+export interface SvgRendererProps<T extends SVGSVGElement = SVGSVGElement>
+  extends AnnotationEvents<T> {
   tool: Tools;
   annotation: Annotation;
   currentSVGObject: SVGObject | null;
   shapeControl: ShapeControl | null;
+  width?: string | number | null;
+  height?: string | number | null;
 }
 
 const SvgRenderer = forwardRef<SVGSVGElement, SvgRendererProps>(

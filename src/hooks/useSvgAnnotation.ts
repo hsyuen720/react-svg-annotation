@@ -3,13 +3,19 @@ import { useCallback, useMemo, useRef, useState } from "react";
 
 import useDrawing from "./useDrawing";
 import useShape from "./useShape";
+import type { SvgRendererProps } from "../components/svgRenderer";
 import { CanvasImageMap, ImageExtension, ImageType } from "../constants/download";
 import { ContainerSize } from "../constants/setting";
 import { Tools } from "../constants/svg";
 import type { Annotation, SVGStyleOption } from "../types/svg";
 import type { AnnotationEvent } from "../types/utils";
 
-const useSvgAnnotation = <T extends SVGSVGElement>(styleOption?: SVGStyleOption) => {
+export type UseSvgAnnotationParams = {
+  styleOption?: SVGStyleOption;
+};
+
+const useSvgAnnotation = <T extends SVGSVGElement>(options?: UseSvgAnnotationParams) => {
+  const { styleOption } = useMemo(() => options ?? {}, [options]);
   const ref = useRef<T>(null);
 
   const [tool, setTool] = useState<Tools>(Tools.Pen);
@@ -148,7 +154,7 @@ const useSvgAnnotation = <T extends SVGSVGElement>(styleOption?: SVGStyleOption)
     [tool, onDrawEnd, clearShape],
   );
 
-  const svgProps = useMemo(
+  const svgProps = useMemo<SvgRendererProps<T>>(
     () => ({
       ref,
       tool,

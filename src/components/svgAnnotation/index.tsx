@@ -38,9 +38,11 @@ const SvgAnnotation: FC<SvgAnnotationProps> = (props) => {
     tool: currentTool,
     download,
   } = useSvgAnnotation({
-    color: props.color,
-    fillColor: props.fillColor,
-    lineWidth: props.lineWidth,
+    styleOption: {
+      color: props.color,
+      fillColor: props.fillColor,
+      lineWidth: props.lineWidth,
+    },
   });
 
   const { el, isOpen, close, toggle } = useOutsideClick<HTMLButtonElement>();
@@ -83,11 +85,7 @@ const SvgAnnotation: FC<SvgAnnotationProps> = (props) => {
             Download
           </ToolbarButton>
           <ToolbarDropDownMenu isOpen={isOpen}>
-            <ToolbarDropdownMenuItem
-              onClick={() => {
-                console.log("hello");
-              }}
-            >
+            <ToolbarDropdownMenuItem onClick={() => handleDownload(ImageType.SVG)}>
               SVG
             </ToolbarDropdownMenuItem>
             <ToolbarDropdownMenuItem onClick={() => handleDownload(ImageType.PNG)}>
