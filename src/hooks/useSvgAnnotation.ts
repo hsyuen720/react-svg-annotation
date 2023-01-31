@@ -12,14 +12,16 @@ import type { AnnotationEvent } from "../types/utils";
 
 export type UseSvgAnnotationParams = {
   styleOption?: SVGStyleOption;
+  value?: Annotation;
+  onChange?: (value: Annotation) => void;
 };
 
 const useSvgAnnotation = <T extends SVGSVGElement>(options?: UseSvgAnnotationParams) => {
-  const { styleOption } = useMemo(() => options ?? {}, [options]);
+  const { styleOption, value, onChange } = useMemo(() => options ?? {}, [options]);
   const ref = useRef<T>(null);
 
   const [tool, setTool] = useState<Tools>(Tools.Pen);
-  const [annotation, setAnnotation] = useState<Annotation>([]);
+  const [annotation, setAnnotation] = useState<Annotation>(value ?? []);
 
   const { currentPath, onDrawStart, onDrawProceed, onDrawEnd, clearDrawing } = useDrawing(
     ref,
@@ -93,24 +95,28 @@ const useSvgAnnotation = <T extends SVGSVGElement>(options?: UseSvgAnnotationPar
         focusShape(e, (id) => annotation.find((value) => value.id === id));
       } else if (tool === Tools.Eraser) {
         const id = (e.target as T).id;
-        setAnnotation(
-          produce((draft) => {
+        setAnnotation((prevState) => {
+          const nextState = produce(prevState, (draft) => {
             const index = draft.findIndex((value) => value.id === id);
             if (index !== -1) draft.splice(index, 1);
-          }),
-        );
+          });
+          onChange?.(nextState);
+          return nextState;
+        });
       } else if (tool === Tools.Pen) {
         onDrawStart();
       } else {
-        setAnnotation(
-          produce((draft) => {
+        setAnnotation((prevState) => {
+          const nextState = produce(prevState, (draft) => {
             const shape = addShape(e, tool);
             if (shape) draft.push(shape);
-          }),
-        );
+          });
+          onChange?.(nextState);
+          return nextState;
+        });
       }
     },
-    [tool, addShape, focusShape, onDrawStart, annotation],
+    [tool, addShape, focusShape, onDrawStart, annotation, onChange],
   );
 
   const onEventProceed = useCallback(
@@ -134,20 +140,24 @@ const useSvgAnnotation = <T extends SVGSVGElement>(options?: UseSvgAnnotationPar
 
       if (tool === Tools.Pen) {
         onDrawEnd((value) => {
-          setAnnotation(
-            produce((draft) => {
+          setAnnotation((prevState) => {
+            const nextState = produce(prevState, (draft) => {
               draft.push(value);
-            }),
-          );
+            });
+            onChange?.(nextState);
+            return nextState;
+          });
         });
       } else if (tool === Tools.Pointer) {
         clearShape((currentShape) => {
-          setAnnotation(
-            produce((draft) => {
+          setAnnotation((prevState) => {
+            const nextState = produce(prevState, (draft) => {
               const index = draft.findIndex((value) => value.id === currentShape.id);
               draft[index] = currentShape;
-            }),
-          );
+            });
+            onChange?.(nextState);
+            return nextState;
+          });
         });
       }
     },

@@ -55,7 +55,15 @@ const Example = () => {
 export default Example;
 ```
 
-## Common SVG Element Style Props (`SVGStyleOption` type)
+## Common Type
+
+### `Annotation`
+
+```tsx
+type Annotation = Array<SVGObject>; // list of SVG Object
+```
+
+### `SVGStyleOption`
 
 ```tsx
 type SVGStyleOption = Partial<{
@@ -80,20 +88,26 @@ interface SvgAnnotationProps extends SVGStyleOption {
   backgroundImage?: string;
   width?: number;
   height?: number;
+  value?: Annotation;
+  onChange?: (value: Annotation) => void;
 }
 ```
 
-| Property          | Type     | Description                 | Default Value |
-| ----------------- | -------- | --------------------------- | ------------- |
-| `backgroundImage` | `string` | Custom background Image url | `NA`          |
-| `width`           | `number` | Width of svg                | `400`         |
-| `height`          | `number` | Height of svg               | `400`         |
+| Property          | Type                          | Description                 | Default Value |
+| ----------------- | ----------------------------- | --------------------------- | ------------- |
+| `backgroundImage` | `string`                      | custom background image url | `NA`          |
+| `width`           | `number`                      | width of svg                | `400`         |
+| `height`          | `number`                      | height of svg               | `400`         |
+| `value`           | `Annotation`                  | Annotation Object           | `undefined`   |
+| `onChange`        | `(value: Annotation) => void` | handle change function      | `undefined`   |
 
 ### `useSvgAnnotation` hook
 
 ```tsx
 type UseSvgAnnotationParams = {
   styleOption?: SVGStyleOption;
+  value?: Annotation;
+  onChange?: (value: Annotation) => void;
 };
 
 type UseSvgAnnotation<T extends SVGSVGElement> = (options?: UseSvgAnnotationParams) => {

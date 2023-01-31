@@ -1,4 +1,4 @@
-import { FC, useCallback, useMemo } from "react";
+import { FC, useCallback, useMemo, useState } from "react";
 
 import {
   AnnotationContainer,
@@ -14,13 +14,15 @@ import { ContainerSize } from "../../constants/setting";
 import { Tools } from "../../constants/svg";
 import useOutsideClick from "../../hooks/useOutsideClick";
 import useSvgAnnotation from "../../hooks/useSvgAnnotation";
-import type { SVGStyleOption } from "../../types/svg";
+import type { Annotation, SVGStyleOption } from "../../types/svg";
 import SvgRenderer from "../svgRenderer";
 
 export interface SvgAnnotationProps extends SVGStyleOption {
   backgroundImage?: string;
   width?: number;
   height?: number;
+  value?: Annotation;
+  onChange?: (value: Annotation) => void;
 }
 
 const toolMap: Array<{ tool: Tools; title: string }> = [
@@ -43,6 +45,8 @@ const SvgAnnotation: FC<SvgAnnotationProps> = (props) => {
       fillColor: props.fillColor,
       lineWidth: props.lineWidth,
     },
+    value: props.value,
+    onChange: props.onChange,
   });
 
   const { el, isOpen, close, toggle } = useOutsideClick<HTMLButtonElement>();
@@ -54,7 +58,6 @@ const SvgAnnotation: FC<SvgAnnotationProps> = (props) => {
 
   const handleDownload = useCallback(
     async (type: ImageType) => {
-      console.log("hello");
       await download(type);
       close();
     },
@@ -62,14 +65,14 @@ const SvgAnnotation: FC<SvgAnnotationProps> = (props) => {
   );
 
   const background = useMemo(() => {
-    const regex =
-      /^((https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?)|(^(\/[\w .-]+)+\/?)$/;
-    return regex.test(props.backgroundImage ?? "") ? props.backgroundImage : undefined;
+    const pattern = new RegExp(
+      /^((https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?)|(^(\.\.\/)+[\w/]+)$/,
+    );
+    return pattern.test(props.backgroundImage ?? "") ? props.backgroundImage : undefined;
   }, [props.backgroundImage]);
 
   return (
     <Container width={dimension.width}>
-      <div>{/* Custom Control Bar */}</div>
       <Toolbar>
         {toolMap.map(({ tool, title }) => (
           <ToolbarButton
